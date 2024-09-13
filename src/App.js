@@ -1,23 +1,258 @@
-import logo from './logo.svg';
+import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import './App.css';
 
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+const apikey = "feff206daa60b539abe8fae8f2ab7f29";
+
 function App() {
+  const [city, setCity] = useState('');
+  const [forecastData, setForecastData] = useState(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentWeatherData, setCurrentWeatherData] = useState(null);
+  const [activeTab, setActiveTab] = useState('weather'); // Tab management
+  const [savedReports, setSavedReports] = useState([]); // Store saved reports
+
+  const fetchWeatherData = useCallback(async (url) => {
+    const weatherReport = async (data) => {
+      const urlcast = `http://api.openweathermap.org/data/2.5/forecast?q=${data.name}&appid=${apikey}`;
+      try {
+        const response = await axios.get(urlcast);
+        const forecast = response.data;
+        setForecastData(forecast);
+        setCurrentWeatherData(data); // Store the current weather data
+        displayWeatherData(data);
+      } catch (error) {
+        console.error('Error fetching forecast data:', error);
+      }
+    };
+
+    try {
+      const response = await axios.get(url);
+      const data = response.data;
+      console.log(data);
+      weatherReport(data);
+    } catch (error) {
+      console.error('Error fetching weather data:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const { latitude, longitude } = position.coords;
+        const url = `http://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apikey}`;
+        fetchWeatherData(url);
+      });
+    }
+  }, [fetchWeatherData]);
+
+  const searchByCity = async () => {
+    try {
+      const urlsearch = `http://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apikey}`;
+      const response = await axios.get(urlsearch);
+      const data = response.data;
+      console.log(data);
+      fetchWeatherData(urlsearch);
+    } catch (error) {
+      console.error('Error fetching weather data:', error);
+    }
+    setCity('');
+  };
+
+  const saveWeatherData = async () => {
+    if (!currentWeatherData) {
+      console.error("No current weather data available to save.");
+      return;
+    }
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/weather', {
+        city: currentWeatherData.name,
+        country: currentWeatherData.sys.country,
+        temperature: Math.floor(currentWeatherData.main.temp - 273),
+        description: currentWeatherData.weather[0].description,
+        icon: currentWeatherData.weather[0].icon,
+      });
+      console.log('Weather data saved to database:', response.data);
+      
+      // Trigger a success toast notification
+      toast.success("Weather report saved successfully!");
+
+    } catch (error) {
+      console.error('Error saving weather data to database:', error);
+      
+      // Trigger an error toast notification
+      toast.error("Failed to save weather report.");
+    }
+  };
+
+  const displayWeatherData = (data) => {
+    const tempCelsius = Math.floor(data.main.temp - 273);
+    const tempFahrenheit = Math.floor((tempCelsius * 9) / 5 + 32);
+    document.getElementById('city').innerText = `${data.name}, ${data.sys.country}`;
+    document.getElementById('temperature').innerText = `${tempCelsius} °C / ${tempFahrenheit} °F`;
+    document.getElementById('clouds').innerText = data.weather[0].description;
+    let icon1 = data.weather[0].icon;
+    let iconurl = `http://api.openweathermap.org/img/w/${icon1}.png`;
+    document.getElementById('img').src = iconurl;
+  };
+
+  const handleRangeChange = (event) => {
+    setCurrentIndex(parseInt(event.target.value));
+  };
+
+  const fetchSavedReports = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/weather');
+      setSavedReports(response.data);
+      console.log('Saved reports fetched:', response.data);
+    } catch (error) {
+      console.error('Error fetching saved reports:', error);
+    }
+  };
+  
+  // UseEffect to fetch saved reports when the tab is active
+  useEffect(() => {
+    if (activeTab === 'savedReports') {
+      fetchSavedReports();
+    }
+  }, [activeTab]);
+
+  const renderHourlyForecast = () => {
+    if (!forecastData) return null;
+
+    return (
+      <div className="range-container">
+        <div className="range-labels">
+          {forecastData.list.slice(0, 5).map((item, index) => (
+            <span key={index}>
+              {new Date(item.dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          ))}
+        </div>
+        <input
+          type="range"
+          min="0"
+          max={forecastData.list.length - 1}
+          value={currentIndex}
+          className="range-slider"
+          onChange={handleRangeChange}
+          step="1"
+        />
+        <div className="range-slider-track"></div>
+        {forecastData.list.length > 0 && (
+          <div>
+            <p>{Math.floor(forecastData.list[currentIndex].main.temp - 273)} °C / {Math.floor((Math.floor(forecastData.list[currentIndex].main.temp - 273) * 9) / 5 + 32)} °F</p>
+            <p>{forecastData.list[currentIndex].weather[0].description}</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDailyForecast = () => {
+    if (!forecastData) return null;
+
+    return (
+      <div className="weekF">
+        {forecastData.list.slice(8, 40, 8).map((item, index) => {
+          const date = new Date(item.dt * 1000);
+          const tempCelsius = Math.floor(item.main.temp_max - 273);
+          const tempFahrenheit = Math.floor((tempCelsius * 9) / 5 + 32);
+          return (
+            <div key={index} className="dayF">
+              <p className="date">{date.toDateString()}</p>
+              <p>{tempCelsius} °C / {tempFahrenheit} °F</p>
+              <p className="desc">{item.weather[0].description}</p>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderSavedReports = () => {
+    if (savedReports.length === 0) {
+      return <p>No saved reports available.</p>;
+    }
+
+    return (
+      <div > 
+      <h2 id="heading1">Saved Weather Reports</h2>
+      {savedReports.map((report, index) => (
+        <div id='div1'  key={index} className="saved-report">
+          <p><strong>City:</strong> {report.city}</p>
+          <p><strong>Country:</strong> {report.country}</p>
+          <p><strong>Temperature:</strong> {report.temperature} °C</p>
+          <p><strong>Description:</strong> {report.description}</p>
+          <img src={`http://api.openweathermap.org/img/w/${report.icon}.png`} alt="Weather Icon" />
+        </div>
+      ))}
+      
+    </div>
+    );
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      {/* Tabs for switching between weather and saved reports */}
+      <div className="tabs">
+        <button onClick={() => setActiveTab('weather')} className={activeTab === 'weather' ? 'active' : ''}>Weather</button>
+        <button onClick={() => setActiveTab('savedReports')} className={activeTab === 'savedReports' ? 'active' : ''}>Saved Reports</button>
+      </div>
+
+      {activeTab === 'weather' && (
+        <div>
+          <div className="header">
+            <h1>WEATHER APP</h1>
+            <div>
+              <input
+                type="text"
+                id="input"
+                placeholder="Enter city name"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+              />
+              <button id="search" onClick={searchByCity}>
+                Search
+              </button>
+            </div>
+          </div>
+
+          <main>
+            <div className="weather">
+              <h2 id="city">Delhi, IN</h2>
+              <div className="temp-box">
+                <img src="/weathericon.png" alt="" id="img" />
+                <p id="temperature">26 °C / 78 °F</p>
+              </div>
+              <span id="clouds">Broken Clouds</span>
+            </div>
+
+            <button id="button1" onClick={saveWeatherData}>Save Current Weather Report</button>
+
+            <div className="divider1"></div>
+
+            <div className="forecstH">
+              <p className="cast-header">Upcoming forecast</p>
+              {renderHourlyForecast()}
+            </div>
+          </main>
+
+          <div className="forecstD">
+            <div className="divider2"></div>
+            <p className="cast-header">Next 4 days forecast</p>
+            {renderDailyForecast()}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'savedReports' && renderSavedReports()}
+
+      <ToastContainer />
     </div>
   );
 }
