@@ -1,4 +1,3 @@
-// server/index.js
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -20,36 +19,53 @@ const WeatherData = mongoose.model('WeatherData', {
   temperature: Number,
   description: String,
   icon: String,
+  date: { type: Date, default: Date.now } // Add date field
 });
 
 // Route to handle storing weather data
 app.post('/api/weather', async (req, res) => {
   try {
-    const { city, country, temperature, description, icon } = req.body;
-
+    const { city, country, temperature, description, icon, date } = req.body;
     const weatherData = new WeatherData({
       city,
       country,
       temperature,
       description,
       icon,
+      date // Add this line
     });
-
     await weatherData.save();
-
-    res.json({ message: 'Weather data saved successfully' });
+    res.status(201).json(weatherData);
   } catch (error) {
     console.error('Error saving weather data:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 // Route to handle fetching saved weather data
 app.get('/api/weather', async (req, res) => {
   try {
-    const weatherReports = await WeatherData.find(); // Fetch all saved reports
+    const weatherReports = await WeatherData.find().sort({ date: -1 }); // Fetch all saved reports sorted by date (newest first)
     res.json(weatherReports);
   } catch (error) {
     console.error('Error fetching weather data:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Route to handle deleting weather data
+app.delete('/api/weather/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await WeatherData.findByIdAndDelete(id);
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Weather report not found' });
+    }
+    
+    res.json({ message: 'Weather report deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting weather data:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -58,3 +74,4 @@ app.get('/api/weather', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+

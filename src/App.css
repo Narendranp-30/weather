@@ -292,3 +292,85 @@ main {
     color: #fff;
     font-family: 'poppins';
   }
+
+.past-days-forecast {
+  margin-top: 30px;
+  text-align: center;
+  color: aliceblue;
+}
+
+.past-days-forecast h3 {
+  font-size: 24px;
+  margin-bottom: 15px;
+  color: rgb(214, 147, 45);
+  font-family: 'Orbitron', sans-serif;
+}
+
+.past-days-forecast select {
+  font-size: 18px;
+  padding: 10px 15px;
+  border-radius: 15px;
+  background: rgba(240, 248, 255, 0.2);
+  color: aliceblue;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.past-days-forecast select option {
+  background: rgba(31, 29, 29, 0.8);
+  color: aliceblue;
+}
+
+.past-days-forecast .selected-day-info {
+  background: rgba(153, 205, 50, 0.2);
+  padding: 15px;
+  border-radius: 15px;
+  margin-top: 15px;
+}
+
+.past-days-forecast .selected-day-info p {
+  margin: 10px 0;
+  font-size: 18px;
+}
+
+.past-days-forecast .selected-day-info .date {
+  color: rgb(254, 189, 132);
+  font-weight: bold;
+}
+
+.past-days-forecast .selected-day-info .temperature {
+  color: rgb(196, 255, 77);
+  font-size: 24px;
+}
+
+.past-days-forecast .selected-day-info .description {
+  text-transform: capitalize;
+}
+
+.saved-report {
+  position: relative;
+}
+
+.delete-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.delete-btn:hover {
+  background-color: #ff1a1a;
+}
+
+.weather-icon {
+  width: 50px;
+  height: 50px;
+}
