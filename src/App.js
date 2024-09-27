@@ -15,6 +15,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('weather'); // Tab management
   const [savedReports, setSavedReports] = useState([]); // Store saved reports
   const [selectedPastDay, setSelectedPastDay] = useState(null);
+  const [lastFetchedCity, setLastFetchedCity] = useState('');
 
   const fetchWeatherData = useCallback(async (url) => {
     const weatherReport = async (data) => {
@@ -23,7 +24,8 @@ function App() {
         const response = await axios.get(urlcast);
         const forecast = response.data;
         setForecastData(forecast);
-        setCurrentWeatherData(data); // Store the current weather data
+        setCurrentWeatherData(data);
+        setLastFetchedCity(data.name); // Store the last fetched city
         displayWeatherData(data);
       } catch (error) {
         console.error('Error fetching forecast data:', error);
@@ -41,14 +43,38 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const { latitude, longitude } = position.coords;
-        const url = `http://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apikey}`;
-        fetchWeatherData(url);
-      });
+    if (lastFetchedCity) {
+      // If we have a last fetched city, use that
+      const url = `http://api.openweathermap.org/data/2.5/weather?q=${lastFetchedCity}&appid=${apikey}`;
+      fetchWeatherData(url);
+    } else if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const url = `http://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apikey}`;
+          fetchWeatherData(url);
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          toast.error('Unable to get your location. Showing default city.');
+          const defaultCity = 'Delhi'; // You can change this to any default city
+          const url = `http://api.openweathermap.org/data/2.5/weather?q=${defaultCity}&appid=${apikey}`;
+          fetchWeatherData(url);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      console.error('Geolocation is not supported by this browser.');
+      toast.error('Geolocation is not supported. Showing default city.');
+      const defaultCity = 'Delhi'; // You can change this to any default city
+      const url = `http://api.openweathermap.org/data/2.5/weather?q=${defaultCity}&appid=${apikey}`;
+      fetchWeatherData(url);
     }
-  }, [fetchWeatherData]);
+  }, [fetchWeatherData, lastFetchedCity]);
 
   const searchByCity = async () => {
     try {
@@ -198,11 +224,30 @@ function App() {
       return <p>No saved reports available.</p>;
     }
 
+    const handleDownload = (report) => {
+      const reportData = `
+Date: ${new Date(report.date).toLocaleString()}
+City: ${report.city}
+Country: ${report.country}
+Temperature: ${report.temperature} °C
+Description: ${report.description}
+      `;
+
+      const blob = new Blob([reportData], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `weather_report_${report.city}_${new Date(report.date).toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
     return (
       <div> 
         <h2 id="heading1">Saved Weather Reports</h2>
         {savedReports.map((report) => {
-          console.log('Report ID:', report._id);
           return (
             <div id='div1' key={report._id} className="saved-report">
               <p><strong>Date:</strong> {new Date(report.date).toLocaleString()}</p>
@@ -210,8 +255,11 @@ function App() {
               <p><strong>Country:</strong> {report.country}</p>
               <p><strong>Temperature:</strong> {report.temperature} °C</p>
               <p><strong>Description:</strong> {report.description}</p>
-              <img src={`http://api.openweathermap.org/img/w/${report.icon}.png`} alt="Weather Icon" />
-              <button onClick={() => deleteReport(report._id)} className="delete-btn">Delete</button>
+              <img src={`http://openweathermap.org/img/w/${report.icon}.png`} alt="Weather Icon" />
+              <div className="report-actions">
+                <button onClick={() => deleteReport(report._id)} className="delete-btn">Delete</button>
+                <button onClick={() => handleDownload(report)} className="download-btn">Download</button>
+              </div>
             </div>
           );
         })}
@@ -298,12 +346,14 @@ function App() {
 
           <main>
             <div className="weather">
-              <h2 id="city">Delhi, IN</h2>
+              <h2 id="city">{currentWeatherData ? `${currentWeatherData.name}, ${currentWeatherData.sys.country}` : 'Loading...'}</h2>
               <div className="temp-box">
-                <img src="/weathericon.png" alt="" id="img" />
-                <p id="temperature">26 °C / 78 °F</p>
+                <img src={currentWeatherData ? `http://openweathermap.org/img/w/${currentWeatherData.weather[0].icon}.png` : ''} alt="" id="img" />
+                <p id="temperature">
+                  {currentWeatherData ? `${Math.floor(currentWeatherData.main.temp - 273.15)} °C / ${Math.floor((currentWeatherData.main.temp - 273.15) * 9/5 + 32)} °F` : 'Loading...'}
+                </p>
               </div>
-              <span id="clouds">Broken Clouds</span>
+              <span id="clouds">{currentWeatherData ? currentWeatherData.weather[0].description : 'Loading...'}</span>
             </div>
 
             <button id="button1" onClick={saveWeatherData}>Save Current Weather Report</button>

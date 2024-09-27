@@ -374,3 +374,31 @@ main {
   width: 50px;
   height: 50px;
 }
+
+.report-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.delete-btn, .download-btn {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.delete-btn {
+  background-color: #ff4d4d;
+  color: white;
+}
+
+.download-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.delete-btn:hover, .download-btn:hover {
+  opacity: 0.8;
+}
