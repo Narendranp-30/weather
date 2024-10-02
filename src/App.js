@@ -84,7 +84,7 @@ function App() {
       console.log(data);
       fetchWeatherData(urlsearch);
     } catch (error) {
-      console.error('Error fetching weather data:', error);
+      console.error('Error fetching weather datas:', error);
     }
     setCity('');
   };
