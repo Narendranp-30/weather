@@ -91,7 +91,7 @@ function App() {
 
   const saveWeatherData = async () => {
     if (!currentWeatherData) {
-      console.error("No current weather data available to save.");
+      console.error("No current weather datas available to save.");
       return;
     }
 
