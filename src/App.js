@@ -106,11 +106,11 @@ function App() {
       });
       console.log('Weather data saved to database:', response.data);
       
-      toast.success("Weather report saved successfully!");
+      toast.success("Weather reports saved successfully!");
       fetchSavedReports(); // Refresh the saved reports list
 
     } catch (error) {
-      console.error('Error saving weather data to database:', error);
+      console.error('Error saving weather datas to database:', error);
       
       toast.error("Failed to save weather reports.");
     }
