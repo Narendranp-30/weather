@@ -112,7 +112,7 @@ function App() {
     } catch (error) {
       console.error('Error saving weather data to database:', error);
       
-      toast.error("Failed to save weather report.");
+      toast.error("Failed to save weather reports.");
     }
   };
 
