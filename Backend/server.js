@@ -53,6 +53,8 @@ app.get('/api/weather', async (req, res) => {
   }
 });
 
+
+
 // Route to handle deleting weather data
 app.delete('/api/weather/:id', async (req, res) => {
   try {
@@ -69,6 +71,8 @@ app.delete('/api/weather/:id', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
 
 // Start the server
 app.listen(PORT, () => {
