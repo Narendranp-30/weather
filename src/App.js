@@ -221,7 +221,7 @@ function App() {
 
   const renderSavedReports = () => {
     if (savedReports.length === 0) {
-      return <p>No saved reports available.</p>;
+      return <p>No saved weather reports available.</p>;
     }
 
     const handleDownload = (report) => {
